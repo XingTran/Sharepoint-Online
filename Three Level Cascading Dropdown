@@ -1,0 +1,112 @@
+<script src="//code.jquery.com/jquery-3.4.1.min.js"></script>  
+<script type="text/javascript">  
+    $(document).ready(function() {  
+      
+        var Dropdownlist = new Array();  
+          
+        Dropdownlist.push({  
+            rootlistname: "RequestType", //1st (root) list Display name  
+            leaflistname: "RequestAsset", //2nd (leaf) List name  
+            leaflookupcolumn: "Title", //Internal field name in leaf List used in lookup  
+            mainformcolumnleafref: "RequestAsset", //main form (4th list)2nd column Display name  
+            mainformcolumnrootref: "RequestType", // main form (4th list) 1st column Display name  
+            defaultddwn: "< Select a Asset Type >"  
+        });  
+            Dropdownlist.push({  
+            rootlistname: "RequestAsset", //2nd (root) list Display name  
+            leaflistname: "AssetNames", //3rd (leaf) List name.  
+            leaflookupcolumn: "Title", //Internal field name in leaf List used in lookup  
+            mainformcolumnleafref: "AssetNames", //main form (4 th list) 3rd column Display name  
+            mainformcolumnrootref: "RequestAsset", // main form (4 th list) 2nd column Display name  
+            defaultddwn: "< Select a Asset Name >"  
+        });  
+        $().methoddropdown(Dropdownlist);  
+        });  
+$.fn.methoddropdown= function (dropdownvalueArray)  
+{  
+    var ddwndropdownvalue = new Array();  
+     var mainform = getParameterByName("ID") == null;  
+    $.fn.methoddropdown.Cascade = function(root,ddwnindex)  
+    {  
+        if (ddwnindex!= null && ddwnindex+1 > ddwndropdownvalue.length)  
+        {  
+            return;  
+        } else if(ddwnindex== null) {  
+            ddwnindex= $(root).attr("methoddropdownIndex");  
+        }         
+        var params = ddwndropdownvalue[ddwnindex];  
+        var rootID = $(root).val();  
+        if (root == null)  
+        {     
+            rootID = $("select[Title='"+params.rootlistname+"'], select[Title='"+  
+                params.rootlistname+" Required Field']").val();  
+        }  
+        if (rootID == undefined)  
+        {  
+            rootID = 0;  
+        }  
+          
+        var leaf = $("select[Title='"+params.mainformcolumnleafref+"'], select[Title='"+  
+            params.mainformcolumnleafref+" Required Field']," +  
+            "select[Title='"+params.mainformcolumnleafref+" possible values']");  
+          
+        var selectedoption = params.selectedoptionue;  
+        ddwndropdownvalue[ddwnindex].selectedoptionue = 0;  
+                  
+        $(leaf).empty();  
+      
+        var dropdownvalue = "<option value='0'>"+params.defaultddwn+"</option>";  
+  
+        var varstore = $.ajax({  
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/Web/Lists/GetByTitle('"+params.leaflistname+  
+                "')/items?$select=Id,"+params.leaflookupcolumn+","+params.mainformcolumnrootref+  
+                "/Id&$expand="+params.mainformcolumnrootref+"/Id&$filter="+params.mainformcolumnrootref+  
+                "/Id eq "+ rootID+"&$orderby=" + params.leaflookupcolumn,  
+            type: "GET",  
+            dataType: "json",  
+            headers: {  
+                Accept: "application/json;odata=verbose"  
+            }         
+        });  
+        varstore.done(function (data,textStatus, jqXHR){  
+            for (index in data.d.results)  
+            {  
+                dropdownvalue += "<option value='"+ data.d.results[index].Id +"'>"+  
+                    data.d.results[index][params.leaflookupcolumn]+"</option>";  
+            }  
+            $(leaf).append(dropdownvalue);  
+            if(!mainform)$(leaf).val(selectedoption);  
+            $().methoddropdown.Cascade(null,Number(ddwnindex)+1);  
+        });  
+        varstore.fail(function (jqXHR,textStatus,errorThrown){  
+            alert("Error retrieving information from list: " + params.leaflistname + jqXHR.responseText);  
+            $(leaf).append(dropdownvalue);  
+        });  
+    }      
+    for (index in dropdownvalueArray)  
+    {  
+        var thisCascade = dropdownvalueArray[index];  
+          
+        if(thisCascade.rootlistname != null)  
+        {  
+            var root = $("select[Title='"+thisCascade.rootlistname+"'], select[Title='"+  
+                thisCascade.rootlistname+" Required Field']");  
+              
+            $(root).attr("methoddropdownIndex",index);  
+              
+            $(root).change(function(){  
+                $().methoddropdown.Cascade(this,null);          
+            });              
+        }   
+        thisCascade.selectedoptionue = $("select[Title='"+thisCascade.mainformcolumnleafref+"'], select[Title='"+  
+            thisCascade.mainformcolumnleafref+" Required Field']," +  
+            "select[Title='"+thisCascade.mainformcolumnleafref+" possible values']").val();    
+        ddwndropdownvalue.push(thisCascade);  
+    }  
+    $().methoddropdown.Cascade(null,0);          
+    function getParameterByName(key) {  
+            key = key.replace(/[*+?^$.\[\]{}()|\\\/]/g, "\\$&"); // escape RegEx meta chars  
+            var match = location.search.match(new RegExp("[?&]"+key+"=([^&]+)(&|$)"));  
+            return match && decodeURIComponent(match[1].replace(/\+/g, " "));  
+        }}  
+</script>  
